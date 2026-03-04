@@ -6,24 +6,49 @@
     <title>T-Lookup 起動中...</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f8fafc; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; height: 100vh; margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
         .spinner {
-            width: 40px; height: 40px; border: 4px solid #e2e8f0;
-            border-top: 4px solid #3370ff; border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #3370ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .title { font-size: 16px; font-weight: 700; color: #334155; }
-        .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #334155;
+        }
+        .sub {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
         .progress-track {
-            width: 200px; height: 4px; background: #e2e8f0;
-            border-radius: 2px; overflow: hidden; margin-top: 16px;
+            width: 200px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 16px;
         }
         .progress-bar {
-            width: 0%; height: 100%; background: #3370ff;
+            width: 0%;
+            height: 100%;
+            background: #3370ff;
             transition: width 1s linear;
         }
     </style>
@@ -31,25 +56,40 @@
 <body>
     <div class="spinner"></div>
     <div class="title">T-Lookup 起動中...</div>
-    <div id="status-text" class="sub">まもなく起動します（約30秒）</div>
-    <div class="progress-track"><div id="bar" class="progress-bar"></div></div>
+    <div id="status-text" class="sub">サーバーを準備しています（約35秒）</div>
+    <div class="progress-track">
+        <div id="bar" class="progress-bar"></div>
+    </div>
 
     <script>
-        // 【重要】RenderのURLが正しいか確認してください
-        var TARGET_URL = 'https://t-lookup-app.onrender.com/';
-        var bar = document.getElementById('bar');
+        /**
+         * 1. 転送先の設定
+         * サーバー側(server.js)で設定した secretKey を ?key= の後に付けます。
+         */
+        var TARGET_URL = 'https://t-lookup-app.onrender.com/?key=tlookup2026';
         
-        var totalSeconds = 30; // 30秒数えたら強制的に飛ぶ
+        var bar = document.getElementById('bar');
+        var statusText = document.getElementById('status-text');
+        
+        // Renderの無料枠が起きるまでの目安（35秒）
+        var totalSeconds = 35; 
         var currentSeconds = 0;
 
+        // カウントダウンタイマー開始
         var timer = setInterval(function() {
             currentSeconds++;
+            
+            // プログレスバーの更新
             var per = (currentSeconds / totalSeconds) * 100;
             bar.style.width = Math.min(per, 100) + '%';
 
-            // 指定時間（30秒）経過したら、問答無用でRenderへ移動
+            // 指定時間経過したら強制ジャンプ
             if (currentSeconds >= totalSeconds) {
                 clearInterval(timer);
+                statusText.innerText = "まもなく起動します...";
+                
+                // replaceを使用することで、ブラウザの「戻る」ボタンで
+                // 再び待機画面に戻ってしまうループを防ぎます。
                 window.location.replace(TARGET_URL);
             }
         }, 1000);
