@@ -19,54 +19,40 @@
         .title { font-size: 16px; font-weight: 700; color: #334155; }
         .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
         .progress-track {
-            width: 200px; height: 4px; background: #e2e8h0;
+            width: 200px; height: 4px; background: #e2e8f0;
             border-radius: 2px; overflow: hidden; margin-top: 16px;
         }
         .progress-bar {
             width: 0%; height: 100%; background: #3370ff;
-            transition: width 0.5s ease;
+            transition: width 1s linear;
         }
     </style>
 </head>
 <body>
     <div class="spinner"></div>
     <div class="title">T-Lookup 起動中...</div>
-    <div id="status-text" class="sub">サーバーを準備しています（最大60秒）</div>
+    <div id="status-text" class="sub">まもなく起動します（約30秒）</div>
     <div class="progress-track"><div id="bar" class="progress-bar"></div></div>
 
     <script>
-        var RENDER_URL = 'https://t-lookup-app.onrender.com';
+        // 【重要】RenderのURLが正しいか確認してください
+        var TARGET_URL = 'https://t-lookup-app.onrender.com/';
         var bar = document.getElementById('bar');
-        var progress = 0;
+        
+        var totalSeconds = 30; // 30秒数えたら強制的に飛ぶ
+        var currentSeconds = 0;
 
-        // 1. プログレスバーをゆっくり進める（60秒かけて90%まで）
-        var progressInterval = setInterval(function() {
-            progress += (100 / 60); 
-            bar.style.width = Math.min(progress, 90) + '%';
+        var timer = setInterval(function() {
+            currentSeconds++;
+            var per = (currentSeconds / totalSeconds) * 100;
+            bar.style.width = Math.min(per, 100) + '%';
+
+            // 指定時間（30秒）経過したら、問答無用でRenderへ移動
+            if (currentSeconds >= totalSeconds) {
+                clearInterval(timer);
+                window.location.replace(TARGET_URL);
+            }
         }, 1000);
-
-        // 2. サーバーが起きたかチェック（起きていれば転送）
-        function checkServer() {
-            fetch(RENDER_URL + '/api/health')
-                .then(function(res) {
-                    if (res.ok) {
-                        clearInterval(progressInterval);
-                        bar.style.width = '100%';
-                        document.getElementById('status-text').innerText = '起動しました！転送します...';
-                        setTimeout(function() {
-                            window.location.replace(RENDER_URL + '/'); // replaceを使うと戻るボタンでエラーに戻りにくい
-                        }, 1000);
-                    } else {
-                        setTimeout(checkServer, 3000);
-                    }
-                })
-                .catch(function() {
-                    setTimeout(checkServer, 3000);
-                });
-        }
-
-        // 起動から5秒後（Larkが安定してから）チェック開始
-        setTimeout(checkServer, 5000);
     </script>
 </body>
 </html>
