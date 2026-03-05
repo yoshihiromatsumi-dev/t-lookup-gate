@@ -1,98 +1,113 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T-Lookup 起動中...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
-            background: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #3370ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #334155;
-        }
-        .sub {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 6px;
-        }
-        .progress-track {
-            width: 200px;
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 16px;
-        }
-        .progress-bar {
-            width: 0%;
-            height: 100%;
-            background: #3370ff;
-            transition: width 1s linear;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T-Lookup 起動中...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #3370ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #334155;
+        }
+        .sub {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+            text-align: center;
+        }
+        .progress-track {
+            width: 200px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #3370ff;
+            transition: width 0.5s ease-out;
+        }
+    </style>
 </head>
 <body>
-    <div class="spinner"></div>
-    <div class="title">T-Lookup 起動中...</div>
-    <div id="status-text" class="sub">サーバーを準備しています（約35秒）</div>
-    <div class="progress-track">
-        <div id="bar" class="progress-bar"></div>
-    </div>
+    <div class="spinner"></div>
+    <div class="title">T-Lookup 起動中...</div>
+    <div id="status-text" class="sub">サーバーを準備しています（最大60秒）</div>
+    <div class="progress-track">
+        <div id="bar" class="progress-bar"></div>
+    </div>
 
-    <script>
-        /**
-         * 1. 転送先の設定
-         * サーバー側(server.js)で設定した secretKey を ?key= の後に付けます。
-         */
-        var TARGET_URL = 'https://t-lookup-app.onrender.com/?key=tlookup2026';
-        
-        var bar = document.getElementById('bar');
-        var statusText = document.getElementById('status-text');
-        
-        // Renderの無料枠が起きるまでの目安（35秒）
-        var totalSeconds = 35; 
-        var currentSeconds = 0;
+    <script>
+        // 転送先URL
+        var TARGET_URL = 'https://t-lookup-app.onrender.com/?key=tlookup2026';
+        
+        var bar = document.getElementById('bar');
+        var statusText = document.getElementById('status-text');
+        
+        var maxSeconds = 60; // 60秒まで粘る設定
+        var currentSeconds = 0;
 
-        // カウントダウンタイマー開始
-        var timer = setInterval(function() {
-            currentSeconds++;
-            
-            // プログレスバーの更新
-            var per = (currentSeconds / totalSeconds) * 100;
-            bar.style.width = Math.min(per, 100) + '%';
+        // 1. プログレスバーの見た目だけを更新するタイマー
+        var visualTimer = setInterval(function() {
+            currentSeconds++;
+            // サーバーが応答するまで、バーは90%で止まるように計算
+            var per = (currentSeconds / maxSeconds) * 90; 
+            bar.style.width = Math.min(per, 90) + '%';
 
-            // 指定時間経過したら強制ジャンプ
-            if (currentSeconds >= totalSeconds) {
-                clearInterval(timer);
-                statusText.innerText = "まもなく起動します...";
-                
-                // replaceを使用することで、ブラウザの「戻る」ボタンで
-                // 再び待機画面に戻ってしまうループを防ぎます。
-                window.location.replace(TARGET_URL);
-            }
-        }, 1000);
-    </script>
+            if (currentSeconds >= maxSeconds) {
+                clearInterval(visualTimer);
+                statusText.innerHTML = "起動に時間がかかっています。<br>一度閉じてから再度お試しください。";
+            }
+        }, 1000);
+
+        // 2. サーバーが起動したか実際に確認し続ける関数（ポーリング）
+        function checkServer() {
+            // fetchを使ってRenderのURLを叩く
+            fetch(TARGET_URL, { mode: 'no-cors' })
+                .then(function() {
+                    // 反応（成功・失敗問わず通信が発生）があれば起動したとみなす
+                    clearInterval(visualTimer);
+                    bar.style.width = '100%';
+                    statusText.innerText = "起動しました！転送します...";
+                    
+                    // 0.5秒だけ待ってから転送（バーが100%になるのを見せるため）
+                    setTimeout(function() {
+                        window.location.replace(TARGET_URL);
+                    }, 500);
+                })
+                .catch(function() {
+                    // エラー（まだ寝ている）なら2秒後に再試行
+                    setTimeout(checkServer, 2000);
+                });
+        }
+
+        // 起動確認の開始
+        checkServer();
+    </script>
 </body>
 </html>
