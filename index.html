@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T-Lookup 起動中...</title>
     <style>
+        /* 前のスタイリッシュなデザインをすべて復元 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
             background: #f8fafc;
@@ -50,63 +51,61 @@
             width: 0%;
             height: 100%;
             background: #3370ff;
-            transition: width 0.5s ease-out;
+            /* transitionを少し速くしてレスポンス感を出す */
+            transition: width 0.4s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="spinner"></div>
     <div class="title">T-Lookup 起動中...</div>
-    <div id="status-text" class="sub">サーバーを準備しています（最大60秒）</div>
+    <div id="status-text" class="sub">サーバーを準備しています（約35秒）</div>
     <div class="progress-track">
         <div id="bar" class="progress-bar"></div>
     </div>
 
     <script>
-        // 転送先URL
         var TARGET_URL = 'https://t-lookup-app.onrender.com/?key=tlookup2026';
-        
         var bar = document.getElementById('bar');
         var statusText = document.getElementById('status-text');
         
-        var maxSeconds = 60; // 60秒まで粘る設定
+        var maxWaitSeconds = 60; // 念のため60秒まで粘る
         var currentSeconds = 0;
 
-        // 1. プログレスバーの見た目だけを更新するタイマー
+        // 1. プログレスバーのアニメーション
+        // サーバーが起きるまでジワジワ進み、90%で一旦止まって待機する演出
         var visualTimer = setInterval(function() {
             currentSeconds++;
-            // サーバーが応答するまで、バーは90%で止まるように計算
-            var per = (currentSeconds / maxSeconds) * 90; 
-            bar.style.width = Math.min(per, 90) + '%';
+            var progress = (currentSeconds / 40) * 90; // 40秒で90%に到達するペース
+            bar.style.width = Math.min(progress, 90) + '%';
 
-            if (currentSeconds >= maxSeconds) {
+            if (currentSeconds >= maxWaitSeconds) {
                 clearInterval(visualTimer);
-                statusText.innerHTML = "起動に時間がかかっています。<br>一度閉じてから再度お試しください。";
+                statusText.innerHTML = "起動に時間がかかっています。<br>一度閉じて再度開いてみてください。";
             }
         }, 1000);
 
-        // 2. サーバーが起動したか実際に確認し続ける関数（ポーリング）
+        // 2. サーバー起動確認（ポーリング）
         function checkServer() {
-            // fetchを使ってRenderのURLを叩く
             fetch(TARGET_URL, { mode: 'no-cors' })
                 .then(function() {
-                    // 反応（成功・失敗問わず通信が発生）があれば起動したとみなす
+                    // 成功（Renderが起きた！）
                     clearInterval(visualTimer);
                     bar.style.width = '100%';
-                    statusText.innerText = "起動しました！転送します...";
+                    statusText.innerText = "起動しました！";
                     
-                    // 0.5秒だけ待ってから転送（バーが100%になるのを見せるため）
+                    // 完了の余韻を持たせてからジャンプ
                     setTimeout(function() {
                         window.location.replace(TARGET_URL);
-                    }, 500);
+                    }, 600);
                 })
                 .catch(function() {
-                    // エラー（まだ寝ている）なら2秒後に再試行
+                    // 失敗（まだ寝てる）なら2秒後に再試行
                     setTimeout(checkServer, 2000);
                 });
         }
 
-        // 起動確認の開始
+        // 実行開始
         checkServer();
     </script>
 </body>
